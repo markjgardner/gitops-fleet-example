@@ -40,7 +40,7 @@ helm upgrade --install aso2 aso2/azure-service-operator \
         --set azureTenantID=$TENANT \
         --set azureClientID=$IDENTITY \
         --set useWorkloadIdentityAuth=true \
-        --set crdPattern='resources.azure.com/*;containerservice.azure.com/*;keyvault.azure.com/*;managedidentity.azure.com/*;eventhub.azure.com/*'
+        --set crdPattern='resources.azure.com/*;containerservice.azure.com/*'
 
 # Join the cluster to the fleet
 az fleet member create -g $FLEET_HUB_GROUP -f $FLEET_CLUSTER -n $ASO_CLUSTER --member-cluster-id $ASOID
@@ -50,6 +50,7 @@ az fleet get-credentials -g $FLEET_HUB_GROUP -n $FLEET_CLUSTER --overwrite-exist
 kubectl label cluster $ASO_CLUSTER clusterType=aso
 
 # Install cluster-definitions on fleet
+kubectl create ns cluster-definitions
 kubectl apply -f ./fleet/cluster-definitions/
 
 # Install the CRP for the cluster definitions
