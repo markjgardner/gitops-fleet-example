@@ -1,0 +1,19 @@
+apiVersion: placement.kubernetes-fleet.io/v1beta1
+kind: ClusterResourcePlacement
+metadata:
+  name: cluster-definitions
+spec:
+  policy:
+    placementType: PickAll
+    affinity:
+      clusterAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          clusterSelectorTerms:
+            - labelSelector: 
+                matchLabels:
+                  clusterType: aso
+  resourceSelectors:
+    - group: ''
+      kind: Namespace
+      name: cluster-definitions
+      version: v1

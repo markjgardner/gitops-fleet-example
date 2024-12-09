@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fleet-cluster2-aks
+  namespace: cluster-definitions
+  annotations:
+    kubernetes-fleet.io/envelope-configmap: "true"
+data:
+  resourcegroup.yaml: |
+    apiVersion: resources.azure.com/v1api20200601
+    kind: ResourceGroup
+    metadata:
+      name: myfleet-rg
+      namespace: cluster-definitions
+      annotations:
+        serviceoperator.azure.com/reconcile-policy: "skip"
+    spec:
+      location: eastus2
+  cluster.yaml: |
+    apiVersion: containerservice.azure.com/v1api20240901
+    kind: ManagedCluster
+    metadata:
+      name: fleet-cluster2-aks
+      namespace: cluster-definitions
+    spec:
+      location: centralus
+      owner:
+        name: myfleet-rg
+      dnsPrefix: fleet-cluster2
+      agentPoolProfiles:
+        - name: system
+          enableAutoScaling: true
+          minCount: 1
+          maxCount: 3
+          vmSize: Standard_B2s
+          osType: Linux
+          osSKU: AzureLinux
+          mode: System
+      identity:
+        type: SystemAssigned
