@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hub-fleet
+  namespace: cluster-definitions
+  annotations:
+    kubernetes-fleet.io/envelope-configmap: "true"
+data:
+  group.yaml: |
+    apiVersion: resources.azure.com/v1api20200601
+    kind: ResourceGroup
+    metadata:
+      name: hub-rg
+      namespace: cluster-definitions
+      annotations:
+        serviceoperator.azure.com/reconcile-policy: "skip"
+    spec:
+      location: eastus2
+  fleet.yaml: |
+    apiVersion: containerservice.azure.com/v1api20230315preview
+    kind: Fleet
+    metadata:
+      name: hub-fleet
+      namespace: cluster-definitions
+      annotations:
+        serviceoperator.azure.com/reconcile-policy: "skip"
+    spec:
+      location: eastus2
+      owner:
+        name: hub-rg

@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kustomization-infra
+  namespace: cluster-config
+  annotations:
+    kubernetes-fleet.io/envelope-configmap: "true"
+data:
+  kustomize.yaml: |
+    apiVersion: kustomize.toolkit.fluxcd.io/v1
+    kind: Kustomization
+    metadata:
+      name: cluster-config-infra
+      namespace: cluster-config
+    spec:
+      force: false
+      interval: 10m0s
+      patches:
+      - patch: |2
+
+          - op:   add
+            path: /spec/chart/spec/sourceRef
+            value: {"name": "cluster-config", "namespace": "cluster-config", "kind": "GitRepository"}
+        target:
+          annotationSelector: clusterconfig.azure.com/use-managed-source=true
+          group: helm.toolkit.fluxcd.io
+          kind: HelmRelease
+      - patch: |2
+
+          - op:   add
+            path: /spec/sourceRef
+            value: {"name": "cluster-config", "namespace": "cluster-config", "kind": "GitRepository"}
+        target:
+          annotationSelector: clusterconfig.azure.com/use-managed-source=true
+          group: kustomize.toolkit.fluxcd.io
+          kind: Kustomization
+      path: ./infrastructure
+      postBuild: {}
+      prune: true
+      serviceAccountName: flux-applier
+      sourceRef:
+        kind: GitRepository
+        name: cluster-config
+        namespace: cluster-config
+      timeout: 10m0s
+      wait: true

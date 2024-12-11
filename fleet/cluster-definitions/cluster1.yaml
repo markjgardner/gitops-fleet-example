@@ -28,3 +28,52 @@ data:
           mode: System
       identity:
         type: SystemAssigned
+  fleet-membership.yaml: |
+    apiVersion: containerservice.azure.com/v1api20230315preview
+    kind: FleetsMember
+    metadata:
+      name: fleet-cluster1-aks
+      namespace: cluster-definitions
+    spec:
+      group: apps
+      owner:
+        name: hub-fleet
+      clusterResourceReference:
+        group: containerservice.azure.com
+        kind: ManagedCluster
+        name: fleet-cluster1-aks
+  flux-extension.yaml: |
+    apiVersion: kubernetesconfiguration.azure.com/v1api20230501
+    kind: Extension
+    metadata:
+      name: gitops
+      namespace: cluster-definitions
+    spec:
+      autoUpgradeMinorVersion: true
+      extensionType: microsoft.flux
+      identity:
+        type: SystemAssigned
+      owner:
+        group: containerservice.azure.com
+        kind: ManagedCluster
+        name: fleet-cluster1-aks
+      scope:
+        cluster:
+          releaseNamespace: kube-system
+  flux-config.yaml: |
+    apiVersion: kubernetesconfiguration.azure.com/v1api20230501
+    kind: FluxConfiguration
+    metadata:
+      name: flux-config
+      namespace: cluster-definitions
+    spec:
+      gitRepository:
+        repositoryRef:
+          branch: master
+        url: https://github.com/Azure/gitops-flux2-kustomize-helm-mt
+      namespace: cluster-config
+      owner:
+        group: containerservice.azure.com
+        kind: ManagedCluster
+        name: fleet-cluster1-aks
+      sourceKind: GitRepository

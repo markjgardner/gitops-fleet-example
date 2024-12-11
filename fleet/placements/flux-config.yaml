@@ -1,7 +1,7 @@
 apiVersion: placement.kubernetes-fleet.io/v1beta1
 kind: ClusterResourcePlacement
 metadata:
-  name: cluster-definitions
+  name: flux-config
 spec:
   policy:
     placementType: PickAll
@@ -11,11 +11,11 @@ spec:
           clusterSelectorTerms:
             - labelSelector: 
                 matchLabels:
-                  clusterType: aso
+                  fleet.azure.com/resource-group: myfleet-rg
   resourceSelectors:
     - group: ''
       kind: Namespace
-      name: cluster-definitions
+      name: cluster-config
       version: v1
   strategy:
     applyStrategy:
