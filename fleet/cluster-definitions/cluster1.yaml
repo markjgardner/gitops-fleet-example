@@ -6,74 +6,131 @@ metadata:
   annotations:
     kubernetes-fleet.io/envelope-configmap: "true"
 data:
+  group.yaml: |
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+    kind: AzureASOManagedCluster
+    metadata:
+      name: fleet-cluster1-aks
+      namespace: default
+    spec:
+      resources:
+      - apiVersion: resources.azure.com/v1api20200601
+        kind: ResourceGroup
+        metadata:
+          name: myfleet-rg
+          annotations:
+            serviceoperator.azure.com/reconcile-policy: "skip"
+        spec:
+          location: eastus2
   cluster.yaml: |
-    apiVersion: containerservice.azure.com/v1api20240901
-    kind: ManagedCluster
+    apiVersion: cluster.x-k8s.io/v1beta1
+    kind: Cluster
     metadata:
       name: fleet-cluster1-aks
-      namespace: cluster-definitions
+      namespace: default
     spec:
-      location: westus3
-      owner:
-        name: myfleet-rg
-      dnsPrefix: fleet-cluster1
-      agentPoolProfiles:
-        - name: system
-          enableAutoScaling: true
-          minCount: 1
-          maxCount: 4
-          vmSize: standard_d2as_v6
-          osType: Linux
-          osSKU: AzureLinux
+      controlPlaneRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+        kind: AzureASOManagedControlPlane
+        name: fleet-cluster1-aks
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+        kind: AzureASOManagedCluster
+        name: fleet-cluster1-aks
+  controlplane.yaml: |
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+    kind: AzureASOManagedControlPlane
+    metadata:
+      name: fleet-cluster1-aks
+    spec:
+      resources:
+        - apiVersion: containerservice.azure.com/v1api20210501
+          kind: ManagedCluster
+          metadata:
+            name: fleet-cluster1-aks
+          spec:
+            location: westus3
+            owner:
+              name: myfleet-rg
+            dnsPrefix: fleet-cluster1
+            identity:
+              type: SystemAssigned
+        - apiVersion: containerservice.azure.com/v1api20230315preview
+          kind: FleetsMember
+          metadata:
+            name: fleet-cluster1-aks
+          spec:
+            group: apps
+            owner:
+              armId: /subscriptions/dd7ce299-146d-494d-865e-47c6a19d289e/resourceGroups/hub-rg/providers/Microsoft.ContainerService/fleets/hub-fleet
+            clusterResourceReference:
+              group: containerservice.azure.com
+              kind: ManagedCluster
+              name: fleet-cluster1-aks
+        - apiVersion: kubernetesconfiguration.azure.com/v1api20230501
+          kind: Extension
+          metadata:
+            name: gitops
+          spec:
+            autoUpgradeMinorVersion: true
+            extensionType: microsoft.flux
+            identity:
+              type: SystemAssigned
+            owner:
+              group: containerservice.azure.com
+              kind: ManagedCluster
+              name: fleet-cluster1-aks
+            scope:
+              cluster:
+                releaseNamespace: kube-system
+        - apiVersion: kubernetesconfiguration.azure.com/v1api20230501
+          kind: FluxConfiguration
+          metadata:
+            name: flux-config
+          spec:
+            gitRepository:
+              repositoryRef:
+                branch: master
+              url: https://github.com/Azure/gitops-flux2-kustomize-helm-mt
+            namespace: cluster-config
+            owner:
+              group: containerservice.azure.com
+              kind: ManagedCluster
+              name: fleet-cluster1-aks
+            sourceKind: GitRepository
+  pool.yaml: |
+    apiVersion: cluster.x-k8s.io/v1beta1
+    kind: MachinePool
+    metadata:
+      name: fleet-cluster1-aks-systempool
+      namespace: default
+    spec:
+      clusterName: fleet-cluster1-aks
+      template:
+        spec:
+          bootstrap:
+            dataSecretName: ""
+          clusterName: fleet-cluster1-aks
+          infrastructureRef:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+            kind: AzureASOManagedMachinePool
+            name: fleet-cluster1-aks-systempool
+    ---
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+    kind: AzureASOManagedMachinePool
+    metadata:
+      name: fleet-cluster1-aks-systempool
+      namespace: default
+    spec:
+      resources:
+      - apiVersion: containerservice.azure.com/v1api20210501
+        kind: ManagedClustersAgentPool
+        metadata:
+          name: fleet-cluster1-aks-systempool
+        spec:
+          azureName: system
           mode: System
-      identity:
-        type: SystemAssigned
-  fleet-membership.yaml: |
-    apiVersion: containerservice.azure.com/v1api20230315preview
-    kind: FleetsMember
-    metadata:
-      name: fleet-cluster1-aks
-      namespace: cluster-definitions
-    spec:
-      group: apps
-      owner:
-        name: hub-fleet
-      clusterResourceReference:
-        group: containerservice.azure.com
-        kind: ManagedCluster
-        name: fleet-cluster1-aks
-  flux-extension.yaml: |
-    apiVersion: kubernetesconfiguration.azure.com/v1api20230501
-    kind: Extension
-    metadata:
-      name: gitops
-      namespace: cluster-definitions
-    spec:
-      autoUpgradeMinorVersion: true
-      extensionType: microsoft.flux
-      identity:
-        type: SystemAssigned
-      owner:
-        group: containerservice.azure.com
-        kind: ManagedCluster
-        name: fleet-cluster1-aks
-      scope:
-        cluster:
-          releaseNamespace: kube-system
-  flux-config.yaml: |
-    apiVersion: kubernetesconfiguration.azure.com/v1api20230501
-    kind: FluxConfiguration
-    metadata:
-      name: flux-config
-      namespace: cluster-definitions
-    spec:
-      gitRepository:
-        repositoryRef:
-          branch: master
-        url: https://github.com/Azure/gitops-flux2-kustomize-helm-mt
-      namespace: cluster-config
-      owner:
-        group: containerservice.azure.com
-        kind: ManagedCluster
-        name: fleet-cluster1-aks
-      sourceKind: GitRepository
+          owner:
+            name: fleet-cluster1-aks
+          type: VirtualMachineScaleSets
+          vmSize: standard_d2as_v6

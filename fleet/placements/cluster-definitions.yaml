@@ -11,7 +11,7 @@ spec:
           clusterSelectorTerms:
             - labelSelector: 
                 matchLabels:
-                  clusterType: aso
+                  clusterType: capz
   resourceSelectors:
     - group: ''
       kind: Namespace
